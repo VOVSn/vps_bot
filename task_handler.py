@@ -10,6 +10,16 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from constants import (
+    UNSAFE_COMMANDS,
+    ANALYZE_PROMPT_TEMPLATE,
+    EXPAND_USER_TASK_PROMPT_TEMPLATE,
+    SUMMARIZE_TASK_PROMPT_TEMPLATE,
+    INFER_NEXT_COMMAND_PROMPT_TEMPLATE,
+    DEFAULT_SUMMARY_RESPONSE,
+    TELEGRAM_MAX_MESSAGE_LENGTH,
+)
+
 
 load_dotenv()
 
@@ -20,14 +30,6 @@ OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://127.0.0.1:11434')
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'phi4:latest')
 OLLAMA_API_URL = f'{OLLAMA_HOST}/api/generate'
 JSON_FILE = 'tasks/task_state.json'
-
-UNSAFE_COMMANDS = [
-    'rm -rf /',
-    'halt',
-    'shutdown -h now',
-    'dd if=/dev/zero',
-    ':(){ :|: & };:',
-]
 
 
 def ssh_connect():
@@ -104,29 +106,28 @@ def ollama_generate(prompt):
         raise
 
 
+def expand_user_task(user_input):
+    """Expand the user's task description using Ollama for clarity."""
+    prompt = EXPAND_USER_TASK_PROMPT_TEMPLATE.format(user_input=user_input)
+    response = ollama_generate(prompt)
+    expanded_task = response.get('response', user_input).strip()
+    return expanded_task
+
+
 def summarize_task(task_state):
     """Summarize the completed task using Ollama."""
-    prompt = (
-        f'Summarize the following completed task state in about 100 words:\n'
-        f'{json.dumps(task_state, indent=2)}\n'
-        'Include what the task was (current_user_task), what commands were '
-        'executed (history), and the final result (current_ssh_output or '
-        'task_complete status). Be concise and focus on key details.'
+    task_state_json = json.dumps(task_state, indent=2)
+    prompt = SUMMARIZE_TASK_PROMPT_TEMPLATE.format(
+        task_state_json=task_state_json
     )
     response = ollama_generate(prompt)
-    summary = response.get('response', 'No summary available.').strip()
+    summary = response.get('response', DEFAULT_SUMMARY_RESPONSE).strip()
     return summary
 
 
 def analyze_prompt(prompt):
     """Analyze the user's prompt to determine its category."""
-    analysis_prompt = (
-        f'Analyze the user\'s prompt:\n"{prompt}"\n'
-        '1. Answerable by AI immediately or small talk\n'
-        '2. Requires VPS connection and actions\n'
-        '3. None of the above\n'
-        'Return only a single digit, no explanation'
-    )
+    analysis_prompt = ANALYZE_PROMPT_TEMPLATE.format(prompt=prompt)
     response = ollama_generate(analysis_prompt)
     response_text = response.get('response', '3').strip()
     if response_text and response_text[0].isdigit():
@@ -138,18 +139,10 @@ def analyze_prompt(prompt):
 
 def infer_next_command(task_state):
     """Infer the next SSH command based on the task state."""
-    prompt = (
-        f'Based on the current task state:\n{json.dumps(task_state, indent=2)}\n'
-        'Determine the next SSH command to execute for the task. If the task is '
-        'complete and no more commands are needed, set "needed_command" to '
-        '"complete". Otherwise, provide the next command to run. For commands that '
-        f'require sudo, prepend "echo {VPS_PASSWORD} | sudo -S " to handle '
-        'password input. For commands that may prompt for user input (e.g., Y/n), '
-        'include non-interactive flags like "-y" for apt-get or equivalent. If a '
-        'previous command failed due to an interactive prompt, adjust the command '
-        'to include the appropriate flag or method to bypass the prompt. '
-        'Return only JSON with "needed_command". NO EXPLANATION.'
-        f'Do not install anything unless it is requested to install'
+    task_state_json = json.dumps(task_state, indent=2)
+    prompt = INFER_NEXT_COMMAND_PROMPT_TEMPLATE.format(
+        task_state_json=task_state_json,
+        sudo_password=VPS_PASSWORD
     )
     response = ollama_generate(prompt)
     response_text = response.get('response', '').strip()
@@ -188,15 +181,20 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
         )
         return
 
+    # Expand the user task using Ollama before creating the task state
+    expanded_task = expand_user_task(user_input)
+    await update.message.reply_text(f'Expanded task: {expanded_task}')
+
     task_id = str(uuid.uuid4())
     task_state = {
         'task_id': task_id,
-        'current_user_task': user_input,
+        'current_user_task': expanded_task,
+        'original_user_input': user_input,
         'task_complete': False,
-        'history': [],  # Commands and their respective outputs
+        'history': [],
         'current_ssh_output': '',
         'needed_command': '',
-        'failed_attempts': {}  # Track failed commands to prevent infinite loops
+        'failed_attempts': {}
     }
     save_task_state(task_state)
     ssh = ssh_connect()
@@ -216,11 +214,9 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 if task_state['current_ssh_output']:
                     summary_msg += ' See output below:'
                 await update.message.reply_text(summary_msg)
-                # Split and send output in chunks
                 await send_output_in_chunks(
                     update, task_state['current_ssh_output']
                 )
-                # Generate and send the summary
                 summary = summarize_task(task_state)
                 await update.message.reply_text(f'Summary:\n{summary}')
                 archive_completed_task()
@@ -233,15 +229,12 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 )
                 task_state['task_complete'] = True
                 save_task_state(task_state)
-                # Generate and send the summary even for blocked tasks
                 summary = summarize_task(task_state)
                 await update.message.reply_text(f'Summary:\n{summary}')
                 archive_completed_task()
                 break
 
-            # Post-process command to ensure non-interactive execution
             if 'apt-get' in next_command and '-y' not in next_command:
-                # Insert -y before the package list or at the end
                 parts = next_command.split('apt-get')
                 if len(parts) > 1:
                     next_command = (parts[0] + 'apt-get -y ' +
@@ -251,7 +244,6 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
 
             await update.message.reply_text(f'Running: `{next_command}`')
             output = ssh_execute(ssh, next_command)
-            # Split and send output in chunks immediately after execution
             await send_output_in_chunks(update, output, prefix='Output:\n')
             task_state['history'].append({
                 'command': next_command,
@@ -259,7 +251,6 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
             })
             task_state['current_ssh_output'] = output
 
-            # Check for repeated failures indicating an unresolved prompt
             if 'Do you want to continue? [Y/n]' in output:
                 task_state.setdefault('failed_attempts', {})
                 task_state['failed_attempts'][next_command] = (
@@ -282,7 +273,6 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
 
     except Exception as e:
         await update.message.reply_text(f'Error: {str(e)}')
-        # Generate and send the summary even for failed tasks
         summary = summarize_task(task_state)
         await update.message.reply_text(f'Summary:\n{summary}')
         archive_completed_task()
@@ -292,26 +282,21 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
 
 async def send_output_in_chunks(update: Update, output: str, prefix: str = ''):
     """Send long output to Telegram in chunks smaller than 4096 characters."""
-    TELEGRAM_MAX_MESSAGE_LENGTH = 4096
     if not output:
         await update.message.reply_text(f'{prefix}No output.')
         return
 
-    # Split output into lines for better readability
     lines = output.splitlines()
     current_chunk = prefix
     for line in lines:
         line_with_newline = line + '\n'
-        # Check if adding this line would exceed the max length
         if (len(current_chunk) + len(line_with_newline) >
                 TELEGRAM_MAX_MESSAGE_LENGTH):
-            # Send the current chunk if it has content
             if current_chunk != prefix:
                 await update.message.reply_text(current_chunk.rstrip())
             current_chunk = prefix + line_with_newline
         else:
             current_chunk += line_with_newline
 
-    # Send the remaining chunk
     if current_chunk != prefix:
         await update.message.reply_text(current_chunk.rstrip())
