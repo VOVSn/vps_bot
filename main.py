@@ -8,6 +8,8 @@ from logging_config import configure_logging
 from message_handler import handle_message
 from start_handler import start
 from stop_handler import stop
+from delete_handler import delete
+from model_handler import model
 
 
 load_dotenv()
@@ -21,6 +23,8 @@ def main():
     app = Application.builder().token(token).build()
     app.add_handler(CommandHandler('start', start))
     app.add_handler(CommandHandler('stop', stop))
+    app.add_handler(CommandHandler('delete', delete))
+    app.add_handler(CommandHandler('model', model))
     app.add_handler(MessageHandler(
         filters.TEXT & ~filters.COMMAND, handle_message
     ))

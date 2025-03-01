@@ -129,6 +129,13 @@ def summarize_task(task_state):
 
 def analyze_prompt(prompt):
     """Analyze the user's prompt to determine its category."""
+    stripped_prompt = prompt.strip()
+    if stripped_prompt.startswith('>'):
+        if len(stripped_prompt) <= 1 or stripped_prompt[1:].strip() == '':
+            return 3  # Treat empty > as invalid
+        return 2
+
+    # Otherwise, proceed with Ollama analysis
     analysis_prompt = ANALYZE_PROMPT_TEMPLATE.format(prompt=prompt)
     response = ollama_generate(analysis_prompt)
     response_text = response.get('response', '3').strip()
@@ -165,8 +172,12 @@ def infer_next_command(task_state):
 
 
 async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
-                          user_input):
+                           user_input, reply_func=None):
     """Execute a task on the VPS based on user input."""
+    # Default to update.message.reply_text if no reply_func provided
+    if reply_func is None:
+        reply_func = update.message.reply_text
+
     current_state = load_task_state()
     if current_state and (
         current_state.get('needed_command') == 'complete' or
@@ -178,14 +189,11 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
         current_state.get('needed_command') == 'complete' or
         current_state.get('task_complete')
     ):
-        await update.message.reply_text(
-            'Another task is in progress. Use /stop to cancel it.'
-        )
+        await reply_func('Another task is in progress. Use /stop to cancel it.')
         return
 
-    # Expand the user task using Ollama before creating the task state
     expanded_task = expand_user_task(user_input)
-    await update.message.reply_text(f'Expanded task: {expanded_task}')
+    await reply_func(f'Expanded task: {expanded_task}')
 
     task_id = str(uuid.uuid4())
     task_state = {
@@ -197,13 +205,13 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
         'current_ssh_output': '',
         'needed_command': '',
         'failed_attempts': {},
-        'command_repetitions': {},  # Track command repetitions
+        'command_repetitions': {},
     }
     save_task_state(task_state)
     ssh = ssh_connect()
 
     try:
-        await update.message.reply_text(f'Starting task (ID: {task_id})...')
+        await reply_func(f'Starting task (ID: {task_id})...')
         while True:
             ollama_response = infer_next_command(task_state)
             if 'needed_command' in ollama_response:
@@ -216,58 +224,51 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 summary_msg = 'Task completed successfully!'
                 if task_state['current_ssh_output']:
                     summary_msg += ' See output below:'
-                await update.message.reply_text(summary_msg)
-                await send_output_in_chunks(
-                    update, task_state['current_ssh_output']
-                )
+                await reply_func(summary_msg)
+                await send_output_in_chunks(reply_func,
+                                           task_state['current_ssh_output'])
                 summary = summarize_task(task_state)
-                await update.message.reply_text(f'Summary:\n{summary}')
+                await reply_func(f'Summary:\n{summary}')
                 archive_completed_task()
                 break
 
             next_command = task_state['needed_command']
 
-            # Track command repetitions
             task_state['command_repetitions'].setdefault(next_command, 0)
             task_state['command_repetitions'][next_command] += 1
             if task_state['command_repetitions'][next_command] > 2:
-                await update.message.reply_text(
+                await reply_func(
                     f'Command `{next_command}` repeated more than twice. '
                     'Terminating task to avoid potential loop.'
                 )
                 task_state['task_complete'] = True
                 save_task_state(task_state)
                 summary = summarize_task(task_state)
-                await update.message.reply_text(f'Summary:\n{summary}')
+                await reply_func(f'Summary:\n{summary}')
                 archive_completed_task()
                 break
 
-            # Check for unsafe commands
             if any(unsafe in next_command for unsafe in UNSAFE_COMMANDS):
-                await update.message.reply_text(
-                    f'Blocked unsafe command: {next_command}'
-                )
+                await reply_func(f'Blocked unsafe command: {next_command}')
                 task_state['task_complete'] = True
                 save_task_state(task_state)
                 summary = summarize_task(task_state)
-                await update.message.reply_text(f'Summary:\n{summary}')
+                await reply_func(f'Summary:\n{summary}')
                 archive_completed_task()
                 break
 
-            # Check for interactive commands
             command_base = next_command.split()[0] if next_command else ''
             if command_base in INTERACTIVE_COMMANDS:
-                await update.message.reply_text(
+                await reply_func(
                     INTERACTIVE_COMMAND_MESSAGE.format(command=next_command)
                 )
                 task_state['task_complete'] = True
                 save_task_state(task_state)
                 summary = summarize_task(task_state)
-                await update.message.reply_text(f'Summary:\n{summary}')
+                await reply_func(f'Summary:\n{summary}')
                 archive_completed_task()
                 break
 
-            # Post-process command to ensure non-interactive execution
             if 'apt-get' in next_command and '-y' not in next_command:
                 parts = next_command.split('apt-get')
                 if len(parts) > 1:
@@ -276,9 +277,9 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 else:
                     next_command = next_command + ' -y'
 
-            await update.message.reply_text(f'Running: `{next_command}`')
+            await reply_func(f'Running: `{next_command}`')
             output = ssh_execute(ssh, next_command)
-            await send_output_in_chunks(update, output, prefix='Output:\n')
+            await send_output_in_chunks(reply_func, output, prefix='Output:\n')
             task_state['history'].append({
                 'command': next_command,
                 'output': output
@@ -291,14 +292,14 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                     task_state['failed_attempts'].get(next_command, 0) + 1
                 )
                 if task_state['failed_attempts'][next_command] >= 3:
-                    await update.message.reply_text(
+                    await reply_func(
                         f'Command `{next_command}` repeatedly failed due to '
                         'an interactive prompt. Terminating task.'
                     )
                     task_state['task_complete'] = True
                     save_task_state(task_state)
                     summary = summarize_task(task_state)
-                    await update.message.reply_text(f'Summary:\n{summary}')
+                    await reply_func(f'Summary:\n{summary}')
                     archive_completed_task()
                     break
 
@@ -306,18 +307,18 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
             save_task_state(task_state)
 
     except Exception as e:
-        await update.message.reply_text(f'Error: {str(e)}')
+        await reply_func(f'Error: {str(e)}')
         summary = summarize_task(task_state)
-        await update.message.reply_text(f'Summary:\n{summary}')
+        await reply_func(f'Summary:\n{summary}')
         archive_completed_task()
     finally:
         ssh.close()
 
 
-async def send_output_in_chunks(update: Update, output: str, prefix: str = ''):
-    """Send long output to Telegram in chunks smaller than 4096 characters."""
+async def send_output_in_chunks(reply_func, output: str, prefix: str = ''):
+    """Send long output in chunks smaller than 4096 characters."""
     if not output:
-        await update.message.reply_text(f'{prefix}No output.')
+        await reply_func(f'{prefix}No output.')
         return
 
     lines = output.splitlines()
@@ -327,10 +328,10 @@ async def send_output_in_chunks(update: Update, output: str, prefix: str = ''):
         if (len(current_chunk) + len(line_with_newline) >
                 TELEGRAM_MAX_MESSAGE_LENGTH):
             if current_chunk != prefix:
-                await update.message.reply_text(current_chunk.rstrip())
+                await reply_func(current_chunk.rstrip())
             current_chunk = prefix + line_with_newline
         else:
             current_chunk += line_with_newline
 
     if current_chunk != prefix:
-        await update.message.reply_text(current_chunk.rstrip())
+        await reply_func(current_chunk.rstrip())
