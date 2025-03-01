@@ -1,5 +1,6 @@
 .env
 venv
 *.log
-tasks
-_pycache_
+tasks/
+__pycache__
+__pycache__/*
