@@ -149,7 +149,8 @@ def infer_next_command(task_state):
         'previous command failed due to an interactive prompt, adjust the command '
         'to include the appropriate flag or method to bypass the prompt. '
         'Return only JSON with "needed_command". NO EXPLANATION.'
-        f'Do not install anything unless it is requested to install'
+        'Do not install anything unless it is requested to install'
+        'for ping commands always add "-c 4"'
     )
     response = ollama_generate(prompt)
     response_text = response.get('response', '').strip()
