@@ -2,5 +2,4 @@
 venv
 *.log
 tasks
-tasks/*
-tasks/task_state.json.*
+_pycache_
