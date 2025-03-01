@@ -1,6 +1,6 @@
 # constants.py
 UNSAFE_COMMANDS = [
-    'rm -rf /',
+    #'rm -rf /',
     'halt',
     'shutdown -h now',
     'dd if=/dev/zero',
@@ -30,7 +30,7 @@ ANALYZE_PROMPT_TEMPLATE = (
     '1. Answerable by AI immediately or small talk\n'
     '2. Requires VPS connection and actions, like shell commands\n'
     '3. None of the above\n'
-    'Return only a single digit, no explanation'
+    'Return only a single digit, no explanation, choose: (1 or 2 or 3)'
 )
 
 # Prompt for expanding the user's task description
@@ -41,6 +41,8 @@ EXPAND_USER_TASK_PROMPT_TEMPLATE = (
     'actions to be performed on a VPS. For example, if the user says '
     '"пингани гугл", expand it to "the user asks the agent to ping '
     'google.com from the VPS". Return only the expanded description.'
+    'If you are to check if something is installed, that means just check,'
+    'advice to install only if explicitly said to install!'
     '5 sentences maximum for the description, please, be concise'
 )
 

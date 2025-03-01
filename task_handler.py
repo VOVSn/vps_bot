@@ -22,6 +22,7 @@ from constants import (
     TELEGRAM_MAX_MESSAGE_LENGTH,
 )
 
+
 load_dotenv()
 
 VPS_IP = os.getenv('VPS_IP', '127.0.0.1')
@@ -195,7 +196,8 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
         'history': [],
         'current_ssh_output': '',
         'needed_command': '',
-        'failed_attempts': {}
+        'failed_attempts': {},
+        'command_repetitions': {},  # Track command repetitions
     }
     save_task_state(task_state)
     ssh = ssh_connect()
@@ -224,6 +226,21 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 break
 
             next_command = task_state['needed_command']
+
+            # Track command repetitions
+            task_state['command_repetitions'].setdefault(next_command, 0)
+            task_state['command_repetitions'][next_command] += 1
+            if task_state['command_repetitions'][next_command] > 2:
+                await update.message.reply_text(
+                    f'Command `{next_command}` repeated more than twice. '
+                    'Terminating task to avoid potential loop.'
+                )
+                task_state['task_complete'] = True
+                save_task_state(task_state)
+                summary = summarize_task(task_state)
+                await update.message.reply_text(f'Summary:\n{summary}')
+                archive_completed_task()
+                break
 
             # Check for unsafe commands
             if any(unsafe in next_command for unsafe in UNSAFE_COMMANDS):
@@ -275,8 +292,8 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 )
                 if task_state['failed_attempts'][next_command] >= 3:
                     await update.message.reply_text(
-                        f'Command `{next_command}` repeatedly failed due to an '
-                        'interactive prompt. Terminating task.'
+                        f'Command `{next_command}` repeatedly failed due to '
+                        'an interactive prompt. Terminating task.'
                     )
                     task_state['task_complete'] = True
                     save_task_state(task_state)
