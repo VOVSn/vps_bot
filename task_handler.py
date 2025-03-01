@@ -12,6 +12,8 @@ from telegram.ext import ContextTypes
 
 from constants import (
     UNSAFE_COMMANDS,
+    INTERACTIVE_COMMANDS,
+    INTERACTIVE_COMMAND_MESSAGE,
     ANALYZE_PROMPT_TEMPLATE,
     EXPAND_USER_TASK_PROMPT_TEMPLATE,
     SUMMARIZE_TASK_PROMPT_TEMPLATE,
@@ -19,7 +21,6 @@ from constants import (
     DEFAULT_SUMMARY_RESPONSE,
     TELEGRAM_MAX_MESSAGE_LENGTH,
 )
-
 
 load_dotenv()
 
@@ -223,6 +224,8 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 break
 
             next_command = task_state['needed_command']
+
+            # Check for unsafe commands
             if any(unsafe in next_command for unsafe in UNSAFE_COMMANDS):
                 await update.message.reply_text(
                     f'Blocked unsafe command: {next_command}'
@@ -234,6 +237,20 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 archive_completed_task()
                 break
 
+            # Check for interactive commands
+            command_base = next_command.split()[0] if next_command else ''
+            if command_base in INTERACTIVE_COMMANDS:
+                await update.message.reply_text(
+                    INTERACTIVE_COMMAND_MESSAGE.format(command=next_command)
+                )
+                task_state['task_complete'] = True
+                save_task_state(task_state)
+                summary = summarize_task(task_state)
+                await update.message.reply_text(f'Summary:\n{summary}')
+                archive_completed_task()
+                break
+
+            # Post-process command to ensure non-interactive execution
             if 'apt-get' in next_command and '-y' not in next_command:
                 parts = next_command.split('apt-get')
                 if len(parts) > 1:

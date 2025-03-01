@@ -7,11 +7,28 @@ UNSAFE_COMMANDS = [
     ':(){ :|: & };:',
 ]
 
+INTERACTIVE_COMMANDS = [
+    'htop',
+    'top',  # Without -b flag, top is interactive
+    'nano',
+    'vim',
+    'vi',
+    'less',
+    'more',
+    'watch',
+]
+
+INTERACTIVE_COMMAND_MESSAGE = (
+    'The command `{command}` is interactive and cannot be run in this context. '
+    'Consider using a non-interactive alternative (e.g., `ps aux` or `top -b -n 1` '
+    'for system monitoring).'
+)
+
 # Prompt for analyzing the user's input to determine its category
 ANALYZE_PROMPT_TEMPLATE = (
     'Analyze the user\'s prompt:\n"{prompt}"\n'
     '1. Answerable by AI immediately or small talk\n'
-    '2. Requires VPS connection and actions, like shell commands, ping, install, check and other requests\n'
+    '2. Requires VPS connection and actions, like shell commands\n'
     '3. None of the above\n'
     'Return only a single digit, no explanation'
 )
@@ -24,6 +41,7 @@ EXPAND_USER_TASK_PROMPT_TEMPLATE = (
     'actions to be performed on a VPS. For example, if the user says '
     '"пингани гугл", expand it to "the user asks the agent to ping '
     'google.com from the VPS". Return only the expanded description.'
+    '5 sentences maximum for the description, please, be concise'
 )
 
 # Prompt for summarizing a completed task
@@ -49,6 +67,7 @@ INFER_NEXT_COMMAND_PROMPT_TEMPLATE = (
     'Return only JSON with "needed_command". NO EXPLANATION.'
     'Do not install anything unless it is requested to install'
     'for ping commands always add "-c 4"'
+    'AVOID interactive commands like htop, vim, nano, watch and others'
 )
 
 # Default response when no summary is available
