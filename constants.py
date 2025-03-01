@@ -56,11 +56,12 @@ SUMMARIZE_TASK_PROMPT_TEMPLATE = (
 # Prompt for inferring the next SSH command
 INFER_NEXT_COMMAND_PROMPT_TEMPLATE = (
     'Based on the current task state:\n{task_state_json}\n'
-    'Determine the next SSH command to execute for the task. If the task is '
-    'complete and no more commands are needed, set "needed_command" to '
-    '"complete". Otherwise, provide the next command to run. For commands '
-    'that require sudo, prepend "echo {sudo_password} | sudo -S " to handle '
-    'password input. For commands that may prompt for user input (e.g., Y/n), '
+    'Determine the next SSH command to execute for the task.'
+    'CHECK:If the task is COMPLETE and no more commands are needed,'
+    'set "needed_command" to "complete". Otherwise, provide the next command to run.'
+    'For commands that require sudo,'
+    'prepend echo {sudo_password} | sudo -S  to handle password input.'
+    'For commands that may prompt for user input (e.g., Y/n), '
     'include non-interactive flags like "-y" for apt-get or equivalent. If a '
     'previous command failed due to an interactive prompt, adjust the command '
     'to include the appropriate flag or method to bypass the prompt. '

@@ -28,7 +28,7 @@ VPS_IP = os.getenv('VPS_IP', '127.0.0.1')
 VPS_USER = os.getenv('VPS_USER', 'your-vps-username')
 VPS_PASSWORD = os.getenv('VPS_PASSWORD', 'your-vps-password')
 OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://127.0.0.1:11434')
-OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'phi4:latest')
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'granite3.2:2b')
 OLLAMA_API_URL = f'{OLLAMA_HOST}/api/generate'
 JSON_FILE = 'tasks/task_state.json'
 
