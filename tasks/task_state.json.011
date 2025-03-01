@@ -1,8 +1,0 @@
-{
-  "task_id": "38fee455-22b6-4df2-921b-dc546286e31f",
-  "current_user_task": "unins docker engine",
-  "task_complete": true,
-  "history": [],
-  "current_ssh_output": "",
-  "needed_command": "sudo systemctl stop docker\ndocker --version\nsudo apt-get remove -y docker docker-engine docker.io containerd runc\ncount=$(dpkg --get-selections | grep -c 'docker*')\nif [ $count -ne 0 ]; then sudo apt-get purge -y docker-ce; fi\ncount=$(dpkg --get-selections | grep -c 'docker*')\nif [ $count -ne 0 ]; then sudo apt-get autoremove -y && sudo apt-get autoclean;\nfi\nsudo rm -rf /var/lib/docker\nsudo rm -rf /var/lib/containerd"
-}
