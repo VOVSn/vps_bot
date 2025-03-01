@@ -1,0 +1,11 @@
+{
+  "task_id": "824ee689-e120-4489-8124-1fb2b2d0fd8c",
+  "current_user_task": "Give me contents of history.txt",
+  "history_of_commands": [
+    "cat history.txt",
+    "ls"
+  ],
+  "current_ssh_output": "",
+  "needed_command": "",
+  "task_complete": true
+}

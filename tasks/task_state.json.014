@@ -1,0 +1,13 @@
+{
+  "task_id": "d2797266-1d66-4260-9e67-916b98a21f2f",
+  "current_user_task": "can you check docker version on vps?",
+  "task_complete": true,
+  "history": [
+    {
+      "command": "docker --version",
+      "output": "Docker version 28.0.1, build 068a01e"
+    }
+  ],
+  "current_ssh_output": "Docker version 28.0.1, build 068a01e",
+  "needed_command": "complete"
+}

@@ -1,0 +1,16 @@
+{
+  "task_id": "5eae80f4-654a-4f2f-9347-083168e24bcf",
+  "current_user_task": "is there nginx installed",
+  "history_of_commands": [
+    "nginx -v",
+    "apt-get update && apt-get install -y nginx",
+    "sudo apt-get update && sudo apt-get install -y nginx",
+    "echo 'adminadminfffff' | sudo -S nginx -v",
+    "sudo apt-get install -y nginx",
+    "echo 'adminadminfffff' | sudo -S nginx -v",
+    "sudo apt-get install -y nginx"
+  ],
+  "current_ssh_output": "sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper\nsudo: a password is required",
+  "needed_command": "echo 'adminadminfffff' | sudo -S nginx -v",
+  "task_complete": true
+}

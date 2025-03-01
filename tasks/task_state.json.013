@@ -1,0 +1,8 @@
+{
+  "task_id": "f8217580-917c-4f07-9d11-e58d7888642f",
+  "current_user_task": "show docker images",
+  "task_complete": true,
+  "history": [],
+  "current_ssh_output": "",
+  "needed_command": "docker images"
+}

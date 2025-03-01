@@ -1,0 +1,12 @@
+{
+  "task_id": "033210ca-8982-4363-90f7-590886b28905",
+  "current_user_task": "uninstall docker please",
+  "history_of_commands": [
+    "sudo apt-get remove --purge docker-ce docker-ce-cli containerd.io",
+    "echo 'adminadminfffff' | sudo -S apt-get remove --purge docker-ce docker-ce-cli containerd.io",
+    "sudo apt-get remove --purge containerd.io"
+  ],
+  "current_ssh_output": "sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper\nsudo: a password is required",
+  "needed_command": "echo 'adminadminfffff' | sudo -S apt-get remove --purge docker-ce docker-ce-cli containerd.io",
+  "task_complete": true
+}
