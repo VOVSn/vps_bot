@@ -1,7 +1,7 @@
 import os
 
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, CommandHandler
 
 
 async def model(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -20,3 +20,5 @@ async def model(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             f'Error retrieving model information: {str(e)}'
         )
+
+model_handler = CommandHandler('model', model)

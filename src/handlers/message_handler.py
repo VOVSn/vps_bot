@@ -3,7 +3,7 @@ import logging
 import os
 
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, MessageHandler, filters
 
 from handlers.task_handler import analyze_prompt, execute_vps_task, ollama_generate
 from constants import MAX_HISTORY, AGENT_PRECONTEXT, CHAT_DIR
@@ -63,3 +63,5 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conversation.append(f'user: {user_message}')
         save_conversation(conversation, chat_file)
         await reply_and_log('Sorry, I don’t understand that request.')
+
+message_handler = MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)

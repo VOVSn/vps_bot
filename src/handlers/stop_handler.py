@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, CommandHandler
 
 from handlers.task_handler import archive_completed_task
 from utils.state_utils import load_task_state, save_task_state
@@ -25,3 +25,5 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"Task (ID: {current_state['task_id']}) stopped and archived."
     )
+
+stop_handler = CommandHandler('stop', stop)
