@@ -26,7 +26,7 @@ def save_conversation(conversation, chat_file, max_history=MAX_HISTORY):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle incoming text messages from users."""
     user_id = update.message.from_user.id
-    chat_file = f'chats/{user_id}.json'
+    chat_file = f'../chats/{user_id}.json'
 
     # Load existing conversation or start new
     if os.path.exists(chat_file):

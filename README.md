@@ -50,6 +50,40 @@ Ensure you have the following installed:
    OLLAMA_HOST=http://127.0.0.1:11434
    OLLAMA_MODEL=your-model
    ```
+   
+## Project structure
+
+vps_bot/
+│
+├── src/                       # Source code directory
+│   ├── __init__.py            # Marks src as a Python package
+│   │
+│   ├── main.py                # Entry point of the application
+│   │
+│   ├── handlers/              # Handlers for Telegram bot commands and messages
+│   │   ├── __init__.py
+│   │   ├── message_handler.py # Handles incoming text messages
+│   │   ├── start_handler.py   # Handles /start command
+│   │   ├── stop_handler.py    # Handles /stop command
+│   │   ├── delete_handler.py  # Handles /delete command
+│   │   ├── model_handler.py   # Handles /model command
+│   │   └── task_handler.py    # Handles VPS task execution
+│   │
+│   ├── utils/                 # Utility modules for shared functionality
+│   │   ├── __init__.py
+│   │   ├── ssh_utils.py       # SSH-related functionality
+│   │   ├── state_utils.py     # Task state management (save/load/archive)
+│   │   └── logging_config.py  # Logging configuration
+│   │
+│   └── constants.py           # Constants (templates, unsafe commands etc.)
+│
+├── chats/                     # Directory for storing conversation JSON files
+│
+├── tasks/                     # Directory for task state JSON files
+│
+├── .env                       # Environment variables
+├── requirements.txt           # Dependencies
+└── README.md                  # Project documentation
 
 ## Running the Bot
 To start the bot, run:
@@ -63,12 +97,14 @@ The bot will listen for messages and execute tasks accordingly.
 - **Stop a Running Task**: `/stop`
 - **Show current LLM model**: `/model`
 - **Delete local chat history**: `/delete`
-- **Send Commands**: Simply type a message, and the bot will categorize and process it.
+- **Send Commands**: Simply type a message, 
+     and the bot will categorize and process it.
 
 
 ## Security Considerations
 - **Prevents Unsafe Commands**: Blocks potentially harmful SSH commands.
-- **Limits Interactive Commands**: Detects and stops commands requiring user interaction.
+- **Limits Interactive Commands**: Detects and stops commands
+    requiring user interaction.
 - **Environment Variables**: Uses `.env` for sensitive configurations.
 
 ## Contributing

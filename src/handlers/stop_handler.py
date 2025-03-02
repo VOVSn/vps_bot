@@ -1,7 +1,8 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from handlers.task_handler import archive_completed_task, load_task_state, save_task_state
+from handlers.task_handler import archive_completed_task
+from utils.state_utils import load_task_state, save_task_state
 
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):

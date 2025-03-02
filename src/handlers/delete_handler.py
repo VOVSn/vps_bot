@@ -7,7 +7,7 @@ from telegram.ext import ContextTypes
 async def delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle the /delete command to remove user's chat history."""
     user_id = update.message.from_user.id
-    chat_file = f'chats/{user_id}.json'
+    chat_file = f'../chats/{user_id}.json'
 
     if os.path.exists(chat_file):
         try:

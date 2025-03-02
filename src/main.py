@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
-from logging_config import configure_logging
+from utils.logging_config import configure_logging
 from handlers.message_handler import handle_message
 from handlers.start_handler import start
 from handlers.stop_handler import stop
