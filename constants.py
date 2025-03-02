@@ -35,15 +35,17 @@ ANALYZE_PROMPT_TEMPLATE = (
 
 # Prompt for expanding the user's task description
 EXPAND_USER_TASK_PROMPT_TEMPLATE = (
-    'Analyze and expand the user\'s input to a clear task description:\n'
+    'Analyze and expand the user\'s input to a clear task plan with steps:\n'
     '"{user_input}"\n'
     'Provide a detailed description of the task in English, focusing on '
     'actions to be performed on a VPS. For example, if the user says '
     '"пингани гугл", expand it to "the user asks the agent to ping '
-    'google.com from the VPS". Return only the expanded description.'
+    'google.com from the VPS". Return only steps needed to accomplish task.'
     'If you are to check if something is installed, that means just check,'
     'advice to install only if explicitly said to install!'
-    '5 sentences maximum for the description, please, be concise'
+    'find / -name filename.txt 2>/dev/null || echo "File does not exist or access denied."'
+    'Example of finding files'
+    'Be concise. 3-5 sentences for each step of the plan'
 )
 
 # Prompt for summarizing a completed task

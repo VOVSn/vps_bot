@@ -5,11 +5,11 @@ from dotenv import load_dotenv
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 from logging_config import configure_logging
-from message_handler import handle_message
-from start_handler import start
-from stop_handler import stop
-from delete_handler import delete
-from model_handler import model
+from handlers.message_handler import handle_message
+from handlers.start_handler import start
+from handlers.stop_handler import stop
+from handlers.delete_handler import delete
+from handlers.model_handler import model
 
 
 load_dotenv()

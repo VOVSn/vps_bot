@@ -4,3 +4,4 @@ venv
 tasks/
 __pycache__
 __pycache__/*
+chats/

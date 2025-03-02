@@ -5,7 +5,7 @@ import os
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from task_handler import analyze_prompt, execute_vps_task, ollama_generate
+from handlers.task_handler import analyze_prompt, execute_vps_task, ollama_generate
 
 
 MAX_HISTORY = 20
