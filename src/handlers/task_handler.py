@@ -241,7 +241,11 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
             })
             task_state['current_ssh_output'] = output
 
-            if not await handle_interactive_prompt(next_command, output, task_state, reply_func):
+            # Skip GPG key errors unless they directly block the task
+            if 'NO_PUBKEY' in output and 'apt-get update' in next_command:
+                await reply_func('Ignoring unrelated GPG key error in apt-get update.')
+                # Proceed to the next step instead of trying to fix it
+            elif not await handle_interactive_prompt(next_command, output, task_state, reply_func):
                 task_state['task_complete'] = True
                 save_task_state(task_state)
                 summary = summarize_task(task_state)

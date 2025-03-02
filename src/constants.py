@@ -5,8 +5,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CHAT_DIR = os.path.join(BASE_DIR, 'chats/')
+TASK_DIR = os.path.join(BASE_DIR, 'tasks/')
 
-# Environment Variables
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', 'your-telegram-bot-token')
 VPS_IP = os.getenv('VPS_IP', '127.0.0.1')
 VPS_USER = os.getenv('VPS_USER', 'your-vps-username')
@@ -14,19 +16,13 @@ VPS_PASSWORD = os.getenv('VPS_PASSWORD', 'your-vps-password')
 OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://127.0.0.1:11434')
 OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'granite3.2:2b')
 OLLAMA_API_URL = f'{OLLAMA_HOST}/api/generate'
-JSON_FILE = os.getenv('JSON_FILE', '../tasks/task_state.json')
+JSON_FILE = f'{TASK_DIR}task_state.json'
 
-# Define BASE_DIR to ensure correct paths regardless of working directory
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CHAT_DIR = os.path.join(BASE_DIR, 'chats')
-TASK_DIR = os.path.join(BASE_DIR, 'tasks')
 
 MAX_HISTORY = 20
-
 TELEGRAM_MAX_MESSAGE_LENGTH = 4096
 
 DEFAULT_SUMMARY_RESPONSE = 'No summary available.'
-
 
 AGENT_PRECONTEXT = (
     'You are AI agent VPS_buddy, an intelligent agent that can answer technical '
@@ -71,14 +67,15 @@ EXPAND_USER_TASK_PROMPT_TEMPLATE = (
     'Analyze and expand the user\'s input to a clear task plan with steps:\n'
     '"{user_input}"\n'
     'Provide a detailed description of the task in English, focusing on '
-    'actions to be performed on a VPS. For example, if the user says '
+    'actions to be performed on a VPS. Please assume we already have connection to VPS via SSH'
+    ' For example, if the user says '
     '"пингани гугл", expand it to "the user asks the agent to ping '
     'google.com from the VPS". Return only steps needed to accomplish task.'
     'If you are to check if something is installed, that means just check,'
     'advice to install only if explicitly said to install!'
     'Example of finding files: '
     'find / -name filename.txt 2>/dev/null || echo "No file or access denied."'
-    'Be concise. 3-5 sentences for each step of the plan'
+    'Be concise. 3 sentences for each step of the plan'
 )
 
 SUMMARIZE_TASK_PROMPT_TEMPLATE = (
@@ -92,6 +89,7 @@ SUMMARIZE_TASK_PROMPT_TEMPLATE = (
 INFER_NEXT_COMMAND_PROMPT_TEMPLATE = (
     'Based on the current task state:\n{task_state_json}\n'
     'Determine the next SSH command to execute for the task.'
+    'Assuming you are already connected via ssh'
     'CHECK:If the task is COMPLETE and no more commands are needed,'
     'set "needed_command" to "complete". Otherwise, provide the next command to run.'
     'For commands that require sudo,'
@@ -101,7 +99,11 @@ INFER_NEXT_COMMAND_PROMPT_TEMPLATE = (
     'previous command failed due to an interactive prompt, adjust the command '
     'to include the appropriate flag or method to bypass the prompt. '
     'Return only JSON with "needed_command". NO EXPLANATION.'
-    'Do not install anything unless it is requested to install'
-    'for ping commands always add "-c 4"'
-    'AVOID interactive commands like htop, vim, nano, watch and others'
+    'DO NOT perform any actions (like installing packages, adding repositories, '
+    'or managing keys) unless EXPLICITLY requested in the user task.'
+    'DO NOT attempt to fix unrelated errors (e.g., GPG key issues for other '
+    'repositories) unless they directly prevent the task from proceeding.'
+    'Stick strictly to the steps outlined in the expanded task plan.'
+    'For ping commands always add "-c 4".'
+    'AVOID interactive commands like htop, vim, nano, watch and others.'
 )
