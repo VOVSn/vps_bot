@@ -6,13 +6,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from handlers.task_handler import analyze_prompt, execute_vps_task, ollama_generate
-
-
-MAX_HISTORY = 20
-AGENT_PRECONTEXT = (
-    'You are AI agent VPS_buddy, an intelligent agent that can answer technical '
-    'questions and also connect to a VPS through SSH to perform operations there.'
-)
+from constants import MAX_HISTORY, AGENT_PRECONTEXT, CHAT_DIR
 
 
 def save_conversation(conversation, chat_file, max_history=MAX_HISTORY):
@@ -26,7 +20,7 @@ def save_conversation(conversation, chat_file, max_history=MAX_HISTORY):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle incoming text messages from users."""
     user_id = update.message.from_user.id
-    chat_file = f'../chats/{user_id}.json'
+    chat_file = f'{CHAT_DIR}{user_id}.json'
 
     # Load existing conversation or start new
     if os.path.exists(chat_file):

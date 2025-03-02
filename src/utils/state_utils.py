@@ -1,8 +1,7 @@
 import json
 import os
 
-
-JSON_FILE = '../tasks/task_state.json'
+from constants import JSON_FILE
 
 
 def load_task_state():

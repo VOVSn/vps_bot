@@ -1,15 +1,16 @@
 import json
 import logging
-import os
 import re
 import requests
 import uuid
 
-from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import ContextTypes
 
 from constants import (
+    VPS_PASSWORD,
+    OLLAMA_API_URL,
+    OLLAMA_MODEL,
     UNSAFE_COMMANDS,
     INTERACTIVE_COMMANDS,
     INTERACTIVE_COMMAND_MESSAGE,
@@ -22,14 +23,6 @@ from constants import (
 )
 from utils.ssh_utils import ssh_connect, ssh_execute
 from utils.state_utils import load_task_state, save_task_state, archive_completed_task
-
-
-load_dotenv()
-
-VPS_PASSWORD = os.getenv('VPS_PASSWORD', 'your-vps-password')
-OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://127.0.0.1:11434')
-OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'granite3.2:2b')
-OLLAMA_API_URL = f'{OLLAMA_HOST}/api/generate'
 
 
 def ollama_generate(prompt):

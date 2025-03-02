@@ -1,21 +1,13 @@
-import os
-
 import logging
 import paramiko
 
-from dotenv import load_dotenv
-
-
-load_dotenv()
-
+from constants import VPS_IP, VPS_USER, VPS_PASSWORD
 
 def ssh_connect():
     """Establish an SSH connection to the VPS."""
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(os.getenv('VPS_IP', '127.0.0.1'),
-                username=os.getenv('VPS_USER', 'your-vps-username'),
-                password=os.getenv('VPS_PASSWORD', 'your-vps-password'))
+    ssh.connect(VPS_IP, username=VPS_USER, password=VPS_PASSWORD)
     return ssh
 
 

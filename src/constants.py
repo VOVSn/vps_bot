@@ -1,4 +1,39 @@
-# constants.py
+import os
+
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+
+# Environment Variables
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', 'your-telegram-bot-token')
+VPS_IP = os.getenv('VPS_IP', '127.0.0.1')
+VPS_USER = os.getenv('VPS_USER', 'your-vps-username')
+VPS_PASSWORD = os.getenv('VPS_PASSWORD', 'your-vps-password')
+OLLAMA_HOST = os.getenv('OLLAMA_HOST', 'http://127.0.0.1:11434')
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL', 'granite3.2:2b')
+OLLAMA_API_URL = f'{OLLAMA_HOST}/api/generate'
+JSON_FILE = os.getenv('JSON_FILE', '../tasks/task_state.json')
+
+# Define BASE_DIR to ensure correct paths regardless of working directory
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+CHAT_DIR = os.path.join(BASE_DIR, 'chats')
+TASK_DIR = os.path.join(BASE_DIR, 'tasks')
+
+MAX_HISTORY = 20
+
+TELEGRAM_MAX_MESSAGE_LENGTH = 4096
+
+DEFAULT_SUMMARY_RESPONSE = 'No summary available.'
+
+
+AGENT_PRECONTEXT = (
+    'You are AI agent VPS_buddy, an intelligent agent that can answer technical '
+    'questions and also connect to a VPS through SSH to perform operations there.'
+)
+
+# Other Constants
 UNSAFE_COMMANDS = [
     #'rm -rf /',
     'halt',
@@ -24,7 +59,6 @@ INTERACTIVE_COMMAND_MESSAGE = (
     'for system monitoring).'
 )
 
-# Prompt for analyzing the user's input to determine its category
 ANALYZE_PROMPT_TEMPLATE = (
     'Analyze the user\'s prompt:\n"{prompt}"\n'
     '1. Answerable by AI immediately or small talk\n'
@@ -33,7 +67,6 @@ ANALYZE_PROMPT_TEMPLATE = (
     'Return only a single digit, no explanation, choose: (1 or 2 or 3)'
 )
 
-# Prompt for expanding the user's task description
 EXPAND_USER_TASK_PROMPT_TEMPLATE = (
     'Analyze and expand the user\'s input to a clear task plan with steps:\n'
     '"{user_input}"\n'
@@ -48,7 +81,6 @@ EXPAND_USER_TASK_PROMPT_TEMPLATE = (
     'Be concise. 3-5 sentences for each step of the plan'
 )
 
-# Prompt for summarizing a completed task
 SUMMARIZE_TASK_PROMPT_TEMPLATE = (
     'Summarize the following completed task state in about 100 words:\n'
     '{task_state_json}\n'
@@ -57,16 +89,13 @@ SUMMARIZE_TASK_PROMPT_TEMPLATE = (
     'task_complete status). Be concise and focus on key details.'
 )
 
-# Prompt for inferring the next SSH command
 INFER_NEXT_COMMAND_PROMPT_TEMPLATE = (
     'Based on the current task state:\n{task_state_json}\n'
     'Determine the next SSH command to execute for the task.'
     'CHECK:If the task is COMPLETE and no more commands are needed,'
     'set "needed_command" to "complete". Otherwise, provide the next command to run.'
     'For commands that require sudo,'
-    'prepend echo {sudo_password} | sudo -S to handle password input.'
-    'If multiple sudo commands are needed in a pipeline, combine them into a single '
-    'sudo invocation using bash -c to avoid multiple prompts.'
+    'prepend echo {sudo_password} | sudo -S  to handle password input.'
     'For commands that may prompt for user input (e.g., Y/n), '
     'include non-interactive flags like "-y" for apt-get or equivalent. If a '
     'previous command failed due to an interactive prompt, adjust the command '
@@ -76,9 +105,3 @@ INFER_NEXT_COMMAND_PROMPT_TEMPLATE = (
     'for ping commands always add "-c 4"'
     'AVOID interactive commands like htop, vim, nano, watch and others'
 )
-
-# Default response when no summary is available
-DEFAULT_SUMMARY_RESPONSE = 'No summary available.'
-
-# Telegram message length limit
-TELEGRAM_MAX_MESSAGE_LENGTH = 4096
