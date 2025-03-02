@@ -4,13 +4,13 @@ import sys
 from telegram.ext import Application
 
 from constants import TELEGRAM_BOT_TOKEN
-from utils.logging_config import configure_logging
 from handlers.message_handler import message_handler
 from handlers.start_handler import start_handler
 from handlers.stop_handler import stop_handler
 from handlers.delete_handler import delete_handler
 from handlers.model_handler import model_handler
 from handlers.error_handler import error_handler
+from utils.logging_config import configure_logging
 
 HANDLERS = [
     start_handler,
