@@ -32,7 +32,7 @@ Ensure you have the following installed:
 
 1. **Clone the Repository**
    ```sh
-   git clone https://github.com/VOVSn/vps-bot.git
+   git clone https://github.com/VOVSn/vps_bot.git
    ```
 2. **Create a Virtual Environment and Install Dependencies**
    ```sh
