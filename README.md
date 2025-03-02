@@ -52,7 +52,7 @@ Ensure you have the following installed:
    ```
    
 ## Project structure
-
+```
 vps_bot/
 │
 ├── src/
@@ -81,7 +81,7 @@ vps_bot/
 ├── .env
 ├── requirements.txt
 └── README.md
-
+```
 ## Running the Bot
 To start the bot, run:
 ```sh
