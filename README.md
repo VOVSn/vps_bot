@@ -61,21 +61,10 @@ The bot will listen for messages and execute tasks accordingly.
 ## Usage
 - **Start the Bot**: `/start`
 - **Stop a Running Task**: `/stop`
+- **Show current LLM model**: `/model`
+- **Delete local chat history**: `/delete`
 - **Send Commands**: Simply type a message, and the bot will categorize and process it.
 
-## File Structure
-```
-telegram-vps-bot/
-│── main.py                 # Entry point for the bot
-│── start_handler.py        # Handles the /start command
-│── stop_handler.py         # Handles the /stop command
-│── message_handler.py      # Processes incoming messages
-│── task_handler.py         # Manages task execution
-│── logging_config.py       # Configures logging
-│── constants.py            # Stores constants for the bot
-│── .env                    # Stores environment variables
-│── tasks/                  # Directory for storing task states
-```
 
 ## Security Considerations
 - **Prevents Unsafe Commands**: Blocks potentially harmful SSH commands.
