@@ -269,6 +269,17 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 archive_completed_task()
                 break
 
+            if 'sudo: a terminal is required' in output or 'sudo: a password is required' in output:
+                await reply_func(f'Command `{next_command}` failed due to sudo issues. Rewriting...')
+                next_command = f'echo {VPS_PASSWORD} | sudo -S bash -c "{next_command}"'
+                await reply_func(f'Retrying: `{next_command}`')
+                output = ssh_execute(ssh, next_command)
+                await send_output_in_chunks(reply_func, output, prefix='Output:\n')
+                task_state['history'].append({
+                    'command': next_command,
+                    'output': output
+                })
+
             if 'apt-get' in next_command and '-y' not in next_command:
                 parts = next_command.split('apt-get')
                 if len(parts) > 1:

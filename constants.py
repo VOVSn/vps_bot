@@ -43,8 +43,8 @@ EXPAND_USER_TASK_PROMPT_TEMPLATE = (
     'google.com from the VPS". Return only steps needed to accomplish task.'
     'If you are to check if something is installed, that means just check,'
     'advice to install only if explicitly said to install!'
-    'find / -name filename.txt 2>/dev/null || echo "File does not exist or access denied."'
-    'Example of finding files'
+    'Example of finding files: '
+    'find / -name filename.txt 2>/dev/null || echo "No file or access denied."'
     'Be concise. 3-5 sentences for each step of the plan'
 )
 
@@ -64,7 +64,9 @@ INFER_NEXT_COMMAND_PROMPT_TEMPLATE = (
     'CHECK:If the task is COMPLETE and no more commands are needed,'
     'set "needed_command" to "complete". Otherwise, provide the next command to run.'
     'For commands that require sudo,'
-    'prepend echo {sudo_password} | sudo -S  to handle password input.'
+    'prepend echo {sudo_password} | sudo -S to handle password input.'
+    'If multiple sudo commands are needed in a pipeline, combine them into a single '
+    'sudo invocation using bash -c to avoid multiple prompts.'
     'For commands that may prompt for user input (e.g., Y/n), '
     'include non-interactive flags like "-y" for apt-get or equivalent. If a '
     'previous command failed due to an interactive prompt, adjust the command '

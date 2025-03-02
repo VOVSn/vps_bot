@@ -9,6 +9,10 @@ from handlers.task_handler import analyze_prompt, execute_vps_task, ollama_gener
 
 
 MAX_HISTORY = 20
+AGENT_PRECONTEXT = (
+    'You are AI agent VPS_buddy, an intelligent agent that can answer technical '
+    'questions and also connect to a VPS through SSH to perform operations there.'
+)
 
 
 def save_conversation(conversation, chat_file, max_history=MAX_HISTORY):
@@ -46,7 +50,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         save_conversation(conversation, chat_file)
         try:
             history_str = '\n'.join(conversation)
-            prompt = f'{history_str}\nagent:'
+            # Inject precontext at the start of the prompt
+            prompt = f'{AGENT_PRECONTEXT}\n{history_str}\nagent:'
             response = ollama_generate(prompt)
             agent_response = response.get('response', '').strip()
             await reply_and_log(agent_response)
