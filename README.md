@@ -55,35 +55,32 @@ Ensure you have the following installed:
 
 vps_bot/
 │
-├── src/                       # Source code directory
-│   ├── __init__.py            # Marks src as a Python package
+├── src/
+│   ├── __init__.py
+│   ├── main.py
 │   │
-│   ├── main.py                # Entry point of the application
-│   │
-│   ├── handlers/              # Handlers for Telegram bot commands and messages
+│   ├── handlers/
 │   │   ├── __init__.py
-│   │   ├── message_handler.py # Handles incoming text messages
-│   │   ├── start_handler.py   # Handles /start command
-│   │   ├── stop_handler.py    # Handles /stop command
-│   │   ├── delete_handler.py  # Handles /delete command
-│   │   ├── model_handler.py   # Handles /model command
-│   │   └── task_handler.py    # Handles VPS task execution
+│   │   ├── message_handler.py
+│   │   ├── start_handler.py
+│   │   ├── stop_handler.py
+│   │   ├── delete_handler.py
+│   │   ├── model_handler.py
+│   │   └── task_handler.py
 │   │
-│   ├── utils/                 # Utility modules for shared functionality
+│   ├── utils/
 │   │   ├── __init__.py
-│   │   ├── ssh_utils.py       # SSH-related functionality
-│   │   ├── state_utils.py     # Task state management (save/load/archive)
-│   │   └── logging_config.py  # Logging configuration
+│   │   ├── ssh_utils.py
+│   │   ├── state_utils.py
+│   │   └── logging_config.py
 │   │
-│   └── constants.py           # Constants (templates, unsafe commands etc.)
+│   └── constants.py
 │
-├── chats/                     # Directory for storing conversation JSON files
-│
-├── tasks/                     # Directory for task state JSON files
-│
-├── .env                       # Environment variables
-├── requirements.txt           # Dependencies
-└── README.md                  # Project documentation
+├── chats/
+├── tasks/
+├── .env
+├── requirements.txt
+└── README.md
 
 ## Running the Bot
 To start the bot, run:
