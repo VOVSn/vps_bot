@@ -1,4 +1,4 @@
-# Telegram VPS Task Automation Bot
+# VPS BUddy
 
 ## Overview
 This project is a Telegram bot that automates task execution on a Virtual Private Server (VPS). The bot processes user messages, categorizes them, and executes appropriate tasks via SSH. It can also generate responses using the Ollama AI model, handle VPS commands securely, and maintain task history.
