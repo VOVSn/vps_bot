@@ -1,29 +1,32 @@
-from telegram import Update
-from telegram.ext import ContextTypes, CommandHandler
-
-from handlers.task_handler import archive_completed_task
-from utils.state_utils import load_task_state, save_task_state
+from telegram.ext import CommandHandler
+from utils.state_utils import load_task_state, save_task_state, archive_completed_task
 
 
-async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle the /stop command to cancel a running task."""
+async def stop(update, context):
+    """Handle the /stop command to terminate the current task."""
     current_state = load_task_state()
     if not current_state:
         await update.message.reply_text('No task is currently running.')
         return
-    if current_state.get('needed_command') == 'complete' or current_state.get(
-        'task_complete'
-    ):
-        await update.message.reply_text(
-            'No active task to stop; last task is already complete.'
-        )
+
+    if current_state.get('task_complete', False):
+        await update.message.reply_text('No task is currently running.')
         return
-    # Mark as stopped and archive
+
+    # Set stop flag
+    current_state['stop_requested'] = True
     current_state['task_complete'] = True
     save_task_state(current_state)
+
+    # Cancel the running task if it exists
+    task_id = context.user_data.get('current_task_id')
+    if task_id and task_id == current_state.get('task_id'):
+        current_task = context.user_data.get('current_task')
+        if current_task and not current_task.done():
+            current_task.cancel()
+
     archive_completed_task()
-    await update.message.reply_text(
-        f"Task (ID: {current_state['task_id']}) stopped and archived."
-    )
+    await update.message.reply_text('Task stopped successfully.')
+
 
 stop_handler = CommandHandler('stop', stop)

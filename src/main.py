@@ -1,9 +1,10 @@
 import logging
+import os
 import sys
 
 from telegram.ext import Application
 
-from constants import TELEGRAM_BOT_TOKEN
+from constants import TELEGRAM_BOT_TOKEN, JSON_FILE
 from handlers.message_handler import message_handler
 from handlers.start_handler import start_handler
 from handlers.stop_handler import stop_handler
@@ -12,6 +13,7 @@ from handlers.model_handler import model_handler
 from handlers.error_handler import error_handler
 from utils.logging_config import configure_logging
 
+
 HANDLERS = [
     start_handler,
     stop_handler,
@@ -19,6 +21,16 @@ HANDLERS = [
     model_handler,
     message_handler,
 ]
+
+
+def clear_task_state():
+    """Clear the task state file on startup."""
+    if os.path.exists(JSON_FILE):
+        os.remove(JSON_FILE)
+        logging.info(f'Cleared task state file: {JSON_FILE}')
+    else:
+        logging.info('No task state file found to clear.')
+
 
 def main() -> int:
     """Initialize and run the Telegram bot application."""

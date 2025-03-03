@@ -3,23 +3,17 @@ import logging
 import re
 import requests
 import uuid
+import asyncio
 
 from telegram import Update
 from telegram.ext import ContextTypes
 
 from constants import (
-    VPS_PASSWORD,
-    OLLAMA_API_URL,
-    OLLAMA_MODEL,
-    UNSAFE_COMMANDS,
-    INTERACTIVE_COMMANDS,
-    INTERACTIVE_COMMAND_MESSAGE,
-    ANALYZE_PROMPT_TEMPLATE,
-    EXPAND_USER_TASK_PROMPT_TEMPLATE,
-    SUMMARIZE_TASK_PROMPT_TEMPLATE,
-    INFER_NEXT_COMMAND_PROMPT_TEMPLATE,
-    DEFAULT_SUMMARY_RESPONSE,
-    TELEGRAM_MAX_MESSAGE_LENGTH,
+    VPS_PASSWORD, OLLAMA_API_URL, OLLAMA_MODEL, UNSAFE_COMMANDS,
+    INTERACTIVE_COMMANDS, INTERACTIVE_COMMAND_MESSAGE,
+    ANALYZE_PROMPT_TEMPLATE, EXPAND_USER_TASK_PROMPT_TEMPLATE,
+    SUMMARIZE_TASK_PROMPT_TEMPLATE, INFER_NEXT_COMMAND_PROMPT_TEMPLATE,
+    DEFAULT_SUMMARY_RESPONSE, TELEGRAM_MAX_MESSAGE_LENGTH
 )
 from utils.ssh_utils import ssh_connect, ssh_execute
 from utils.state_utils import load_task_state, save_task_state, archive_completed_task
@@ -55,9 +49,7 @@ def expand_user_task(user_input):
 def summarize_task(task_state):
     """Summarize the completed task using Ollama."""
     task_state_json = json.dumps(task_state, indent=2)
-    prompt = SUMMARIZE_TASK_PROMPT_TEMPLATE.format(
-        task_state_json=task_state_json
-    )
+    prompt = SUMMARIZE_TASK_PROMPT_TEMPLATE.format(task_state_json=task_state_json)
     response = ollama_generate(prompt)
     summary = response.get('response', DEFAULT_SUMMARY_RESPONSE).strip()
     return summary
@@ -85,12 +77,11 @@ def infer_next_command(task_state):
     """Infer the next SSH command based on the task state."""
     task_state_json = json.dumps(task_state, indent=2)
     prompt = INFER_NEXT_COMMAND_PROMPT_TEMPLATE.format(
-        task_state_json=task_state_json,
-        sudo_password=VPS_PASSWORD
+        task_state_json=task_state_json, sudo_password=VPS_PASSWORD
     )
     response = ollama_generate(prompt)
     response_text = response.get('response', '').strip()
-    
+
     json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
     if json_match:
         json_str = json_match.group(0)
@@ -102,7 +93,7 @@ def infer_next_command(task_state):
             logging.error(f'JSON parse error: {str(e)}')
     else:
         logging.error('No JSON found in response')
-    
+
     return {'needed_command': 'complete'}
 
 
@@ -154,28 +145,51 @@ async def handle_interactive_prompt(next_command, output, task_state, reply_func
     return True
 
 
+async def send_output_in_chunks(reply_func, output: str, prefix: str = ''):
+    """Send long output in chunks smaller than 4096 characters."""
+    if not output:
+        await reply_func(f'{prefix}No output.')
+        return
+
+    lines = output.splitlines()
+    current_chunk = prefix
+    for line in lines:
+        line_with_newline = line + '\n'
+        if len(current_chunk) + len(line_with_newline) > TELEGRAM_MAX_MESSAGE_LENGTH:
+            if current_chunk != prefix:
+                await reply_func(current_chunk.rstrip())
+            current_chunk = prefix + line_with_newline
+        else:
+            current_chunk += line_with_newline
+
+    if current_chunk != prefix:
+        await reply_func(current_chunk.rstrip())
+
+
 async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                            user_input, reply_func=None):
     """Execute a task on the VPS based on user input."""
     if reply_func is None:
         reply_func = update.message.reply_text
 
+    # Check for existing task
     current_state = load_task_state()
+    if current_state and (
+        current_state.get('needed_command') != 'complete' and
+        not current_state.get('task_complete')
+    ):
+        await reply_func('Another task is in progress. Use /stop to cancel it.')
+        return
+
+    # Clear completed task state if it exists
     if current_state and (
         current_state.get('needed_command') == 'complete' or
         current_state.get('task_complete')
     ):
         archive_completed_task()
 
-    if current_state and not (
-        current_state.get('needed_command') == 'complete' or
-        current_state.get('task_complete')
-    ):
-        await reply_func('Another task is in progress. Use /stop to cancel it.')
-        return
-
     expanded_task = expand_user_task(user_input)
-    await reply_func(f'Expanded task: {expanded_task}')
+    await reply_func(f'Expanded task: \n{expanded_task}')
 
     task_id = str(uuid.uuid4())
     task_state = {
@@ -183,6 +197,7 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
         'current_user_task': expanded_task,
         'original_user_task': user_input,
         'task_complete': False,
+        'stop_requested': False,
         'history': [],
         'current_ssh_output': '',
         'needed_command': '',
@@ -194,11 +209,35 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
 
     try:
         await reply_func(f'Starting task (ID: {task_id})...')
+        # Store the task ID in context for cancellation
+        context.user_data['current_task_id'] = task_id
+
         while True:
+            # Check for stop request at the start of each iteration
+            current_state = load_task_state()
+            if current_state.get('stop_requested', False):
+                await reply_func('Task stopped by user.')
+                task_state['task_complete'] = True
+                save_task_state(task_state)
+                archive_completed_task()
+                break
+
+            # Yield control to allow cancellation
+            await asyncio.sleep(0)
+
             ollama_response = infer_next_command(task_state)
             if 'needed_command' in ollama_response:
                 task_state['needed_command'] = ollama_response['needed_command']
             save_task_state(task_state)
+
+            # Check stop again after Ollama call
+            current_state = load_task_state()
+            if current_state.get('stop_requested', False):
+                await reply_func('Task stopped by user.')
+                task_state['task_complete'] = True
+                save_task_state(task_state)
+                archive_completed_task()
+                break
 
             if task_state.get('needed_command') == 'complete':
                 task_state['task_complete'] = True
@@ -207,8 +246,7 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 if task_state['current_ssh_output']:
                     summary_msg += ' See output below:'
                 await reply_func(summary_msg)
-                await send_output_in_chunks(reply_func,
-                                           task_state['current_ssh_output'])
+                await send_output_in_chunks(reply_func, task_state['current_ssh_output'])
                 summary = summarize_task(task_state)
                 await reply_func(f'Summary:\n{summary}')
                 archive_completed_task()
@@ -226,8 +264,7 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
             if 'apt-get' in next_command and '-y' not in next_command:
                 parts = next_command.split('apt-get')
                 if len(parts) > 1:
-                    next_command = (parts[0] + 'apt-get -y ' +
-                                    ' '.join(parts[1].split()[1:]))
+                    next_command = parts[0] + 'apt-get -y ' + ' '.join(parts[1].split()[1:])
                 else:
                     next_command = next_command + ' -y'
 
@@ -241,11 +278,16 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
             })
             task_state['current_ssh_output'] = output
 
-            # Skip GPG key errors unless they directly block the task
-            if 'NO_PUBKEY' in output and 'apt-get update' in next_command:
-                await reply_func('Ignoring unrelated GPG key error in apt-get update.')
-                # Proceed to the next step instead of trying to fix it
-            elif not await handle_interactive_prompt(next_command, output, task_state, reply_func):
+            # Check stop again after SSH execution
+            current_state = load_task_state()
+            if current_state.get('stop_requested', False):
+                await reply_func('Task stopped by user.')
+                task_state['task_complete'] = True
+                save_task_state(task_state)
+                archive_completed_task()
+                break
+
+            if not await handle_interactive_prompt(next_command, output, task_state, reply_func):
                 task_state['task_complete'] = True
                 save_task_state(task_state)
                 summary = summarize_task(task_state)
@@ -256,32 +298,20 @@ async def execute_vps_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
             task_state['needed_command'] = ''
             save_task_state(task_state)
 
+    except asyncio.CancelledError:
+        await reply_func('Task cancelled by user.')
+        task_state['task_complete'] = True
+        save_task_state(task_state)
+        archive_completed_task()
+        raise
+
     except Exception as e:
         await reply_func(f'Error: {str(e)}')
         summary = summarize_task(task_state)
-        await reply_func(f'Summary:\n{summary}')
+        await reply_func(f'Summary:\n{summary}', parse_mode='MarkdownV2')
         archive_completed_task()
+
     finally:
         ssh.close()
-
-
-async def send_output_in_chunks(reply_func, output: str, prefix: str = ''):
-    """Send long output in chunks smaller than 4096 characters."""
-    if not output:
-        await reply_func(f'{prefix}No output.')
-        return
-
-    lines = output.splitlines()
-    current_chunk = prefix
-    for line in lines:
-        line_with_newline = line + '\n'
-        if (len(current_chunk) + len(line_with_newline) >
-                TELEGRAM_MAX_MESSAGE_LENGTH):
-            if current_chunk != prefix:
-                await reply_func(current_chunk.rstrip())
-            current_chunk = prefix + line_with_newline
-        else:
-            current_chunk += line_with_newline
-
-    if current_chunk != prefix:
-        await reply_func(current_chunk.rstrip())
+        if 'current_task_id' in context.user_data:
+            del context.user_data['current_task_id']
